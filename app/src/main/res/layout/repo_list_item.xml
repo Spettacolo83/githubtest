@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:descendantFocusability="beforeDescendants"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/repo_item_background"
+        android:descendantFocusability="afterDescendants"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/news_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="Title"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/news_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/news_title"
+                android:layout_marginTop="5dp"
+                android:text="Lorem Ipsum available, but the majority have suffered alteration in some form..."
+                android:textSize="12dp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/news_image"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginLeft="5dp"
+            android:layout_toRightOf="@+id/news_title"
+            android:scaleType="centerCrop"
+            android:src="@mipmap/ic_launcher" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">GitHubTest</string>
+    <string name="ok">Ok</string>
+    <string name="error_get_feed_title">Error Feed</string>
+    <string name="error_get_feed_msg">Error getting GitHub repositories. Please try again or check your internet connection.</string>
+    <string name="loading_repos">Loading GitHub repositories...</string>
 </resources>

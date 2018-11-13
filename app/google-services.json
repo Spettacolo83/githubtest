@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "884106603161",
+    "firebase_url": "https://github-test-c0a3b.firebaseio.com",
+    "project_id": "github-test-c0a3b",
+    "storage_bucket": "github-test-c0a3b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:884106603161:android:9b31bd0857350641",
+        "android_client_info": {
+          "package_name": "it.stefanorussello.githubtest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "884106603161-p8l30futerm07ugqir3oppj19omvpu7f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlzPcsJ0dn2-xoKluJZXs9D0vcKTvbyhw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
