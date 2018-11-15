@@ -143,5 +143,88 @@ public class GithubRepo {
     @SerializedName("deployments_url")
     @Expose
     public String deploymentsUrl;
-
+    @SerializedName("created_at")
+    @Expose
+    public String createdAt;
+    @SerializedName("updated_at")
+    @Expose
+    public String updatedAt;
+    @SerializedName("pushed_at")
+    @Expose
+    public String pushedAt;
+    @SerializedName("git_url")
+    @Expose
+    public String gitUrl;
+    @SerializedName("ssh_url")
+    @Expose
+    public String sshUrl;
+    @SerializedName("clone_url")
+    @Expose
+    public String cloneUrl;
+    @SerializedName("svn_url")
+    @Expose
+    public String svnUrl;
+    @SerializedName("homepage")
+    @Expose
+    public String homepage;
+    @SerializedName("size")
+    @Expose
+    public Integer size;
+    @SerializedName("stargazers_count")
+    @Expose
+    public Integer stargazersCount;
+    @SerializedName("watchers_count")
+    @Expose
+    public Integer watchersCount;
+    @SerializedName("language")
+    @Expose
+    public String language;
+    @SerializedName("has_issues")
+    @Expose
+    public Boolean hasIssues;
+    @SerializedName("has_projects")
+    @Expose
+    public Boolean hasProjects;
+    @SerializedName("has_downloads")
+    @Expose
+    public Boolean hasDownloads;
+    @SerializedName("has_wiki")
+    @Expose
+    public Boolean hasWiki;
+    @SerializedName("has_pages")
+    @Expose
+    public Boolean hasPages;
+    @SerializedName("forks_count")
+    @Expose
+    public Integer forksCount;
+    @SerializedName("mirror_url")
+    @Expose
+    public Object mirrorUrl;
+    @SerializedName("archived")
+    @Expose
+    public Boolean archived;
+    @SerializedName("open_issues_count")
+    @Expose
+    public Integer openIssuesCount;
+    @SerializedName("license")
+    @Expose
+    public License license;
+    @SerializedName("forks")
+    @Expose
+    public Integer forks;
+    @SerializedName("open_issues")
+    @Expose
+    public Integer openIssues;
+    @SerializedName("watchers")
+    @Expose
+    public Integer watchers;
+    @SerializedName("default_branch")
+    @Expose
+    public String defaultBranch;
+    @SerializedName("network_count")
+    @Expose
+    public Integer networkCount;
+    @SerializedName("subscribers_count")
+    @Expose
+    public Integer subscribersCount;
 }

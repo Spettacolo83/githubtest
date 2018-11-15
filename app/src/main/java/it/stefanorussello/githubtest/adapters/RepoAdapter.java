@@ -13,9 +13,12 @@ import com.bumptech.glide.Glide;
 import java.util.List;
 
 import it.stefanorussello.githubtest.R;
+import it.stefanorussello.githubtest.listeners.RepoListener;
 import it.stefanorussello.githubtest.models.GithubRepo;
 
 public class RepoAdapter extends ArrayAdapter<GithubRepo> {
+
+    RepoListener repoListener;
 
     private static class ViewHolder {
         TextView repoTitle;
@@ -23,14 +26,15 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
         ImageView repoImage;
     }
 
-    public RepoAdapter(Context context, List<GithubRepo> news) {
+    public RepoAdapter(Context context, List<GithubRepo> news, RepoListener listener) {
         super(context, R.layout.repo_list_item, news);
+        repoListener = listener;
     }
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
 
-        GithubRepo repo = getItem(position);
+        final GithubRepo repo = getItem(position);
         ViewHolder viewHolder;
         if (convertView == null) {
             viewHolder = new ViewHolder();
@@ -52,9 +56,7 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                Intent newsIntent = new Intent(getContext(), RepoActivity.class);
-//                newsIntent.putExtra("NewsPosition", position);
-//                getContext().startActivity(newsIntent);
+                repoListener.itemClicked(position, repo);
             }
         });
 

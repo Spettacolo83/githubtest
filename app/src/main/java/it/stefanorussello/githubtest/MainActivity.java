@@ -1,8 +1,7 @@
 package it.stefanorussello.githubtest;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.ListView;
 
 import com.crashlytics.android.Crashlytics;
@@ -15,6 +14,7 @@ import java.util.List;
 
 import io.fabric.sdk.android.Fabric;
 import it.stefanorussello.githubtest.adapters.RepoAdapter;
+import it.stefanorussello.githubtest.listeners.RepoListener;
 import it.stefanorussello.githubtest.models.GithubRepo;
 import it.stefanorussello.githubtest.utils.Utility;
 import okhttp3.Call;
@@ -72,8 +72,13 @@ public class MainActivity extends AppCompatActivity {
                     JsonArray jsonRepos = new Gson().fromJson(response.body().string(), JsonArray.class);
                     listRepos = new Gson().fromJson(jsonRepos, new TypeToken<List<GithubRepo>>() {}.getType());
 
-                    final RepoAdapter adapter = new RepoAdapter(MainActivity.this, listRepos);
-
+                    final RepoAdapter adapter = new RepoAdapter(MainActivity.this, listRepos, new RepoListener() {
+                        @Override
+                        public void itemClicked(int position, GithubRepo repo) {
+                            utility.showAlert(MainActivity.this, repo.name, repo.url);
+                        }
+                    });
+                    
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
