@@ -227,4 +227,7 @@ public class GithubRepo {
     @SerializedName("subscribers_count")
     @Expose
     public Integer subscribersCount;
+
+    public int commits = 0;
+    public int branches = 0;
 }

@@ -23,32 +23,40 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/news_title"
+                android:id="@+id/repo_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
                 android:text="Title"
                 android:textSize="22sp"
                 android:textStyle="bold" />
-
             <TextView
-                android:id="@+id/news_description"
+                android:id="@+id/repo_author"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/news_title"
+                android:layout_weight="2"
+                android:text="Author"
+                android:textColor="#AAAAAA"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/repo_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/repo_title"
                 android:layout_marginTop="5dp"
-                android:text="Lorem Ipsum available, but the majority have suffered alteration in some form..."
+                android:text="Repository description"
                 android:textSize="12dp" />
 
         </LinearLayout>
 
         <ImageView
-            android:id="@+id/news_image"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:id="@+id/repo_image"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_marginLeft="5dp"
-            android:layout_toRightOf="@+id/news_title"
+            android:layout_toRightOf="@+id/repo_title"
             android:scaleType="centerCrop"
             android:src="@mipmap/ic_launcher" />
 

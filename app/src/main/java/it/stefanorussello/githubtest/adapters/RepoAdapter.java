@@ -10,6 +10,8 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
+import org.w3c.dom.Text;
+
 import java.util.List;
 
 import it.stefanorussello.githubtest.R;
@@ -22,13 +24,24 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
 
     private static class ViewHolder {
         TextView repoTitle;
+        TextView repoAuthor;
         TextView repoDesc;
         ImageView repoImage;
     }
 
-    public RepoAdapter(Context context, List<GithubRepo> news, RepoListener listener) {
-        super(context, R.layout.repo_list_item, news);
+    public RepoAdapter(Context context, List<GithubRepo> repos, RepoListener listener) {
+        super(context, R.layout.repo_list_item, repos);
         repoListener = listener;
+    }
+
+    public void refresh(List<GithubRepo> repos) {
+        clear();
+        int i=0;
+        for (GithubRepo repo : repos) {
+            insert(repo, i);
+            i++;
+        }
+        this.notifyDataSetChanged();
     }
 
     @Override
@@ -41,14 +54,16 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
             LayoutInflater inflater = LayoutInflater.from(getContext());
             convertView = inflater.inflate(R.layout.repo_list_item, parent, false);
 
-            viewHolder.repoTitle = (TextView) convertView.findViewById(R.id.news_title);
-            viewHolder.repoDesc = (TextView) convertView.findViewById(R.id.news_description);
-            viewHolder.repoImage = (ImageView) convertView.findViewById(R.id.news_image);
+            viewHolder.repoTitle = convertView.findViewById(R.id.repo_title);
+            viewHolder.repoAuthor = convertView.findViewById(R.id.repo_author);
+            viewHolder.repoDesc = convertView.findViewById(R.id.repo_description);
+            viewHolder.repoImage = convertView.findViewById(R.id.repo_image);
             convertView.setTag(viewHolder);
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
         viewHolder.repoTitle.setText(repo.name);
+        viewHolder.repoAuthor.setText(repo.owner.login);
         viewHolder.repoDesc.setText(repo.description);
         Glide.with(getContext()).load(repo.owner.avatarUrl).into(viewHolder.repoImage);
 
