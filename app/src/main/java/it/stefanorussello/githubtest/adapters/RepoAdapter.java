@@ -10,17 +10,15 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
-import org.w3c.dom.Text;
-
 import java.util.List;
 
 import it.stefanorussello.githubtest.R;
-import it.stefanorussello.githubtest.listeners.RepoListener;
+import it.stefanorussello.githubtest.listeners.RepoClickListener;
 import it.stefanorussello.githubtest.models.GithubRepo;
 
 public class RepoAdapter extends ArrayAdapter<GithubRepo> {
 
-    RepoListener repoListener;
+    RepoClickListener repoClickListener;
 
     private static class ViewHolder {
         TextView repoTitle;
@@ -29,9 +27,9 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
         ImageView repoImage;
     }
 
-    public RepoAdapter(Context context, List<GithubRepo> repos, RepoListener listener) {
+    public RepoAdapter(Context context, List<GithubRepo> repos, RepoClickListener listener) {
         super(context, R.layout.repo_list_item, repos);
-        repoListener = listener;
+        repoClickListener = listener;
     }
 
     public void refresh(List<GithubRepo> repos) {
@@ -71,7 +69,7 @@ public class RepoAdapter extends ArrayAdapter<GithubRepo> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                repoListener.itemClicked(position, repo);
+                repoClickListener.itemClicked(position, repo);
             }
         });
 

@@ -1,10 +1,11 @@
 package it.stefanorussello.githubtest;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.SearchRecentSuggestions;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
@@ -17,32 +18,41 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import io.fabric.sdk.android.Fabric;
 import it.stefanorussello.githubtest.adapters.RepoAdapter;
+import it.stefanorussello.githubtest.listeners.RepoClickListener;
+import it.stefanorussello.githubtest.listeners.RepoCountListener;
 import it.stefanorussello.githubtest.listeners.RepoDetailsListener;
-import it.stefanorussello.githubtest.listeners.RepoListener;
+import it.stefanorussello.githubtest.listeners.ReposListener;
+import it.stefanorussello.githubtest.models.Branch;
+import it.stefanorussello.githubtest.models.Commit;
 import it.stefanorussello.githubtest.models.GithubRepo;
 import it.stefanorussello.githubtest.utils.Utility;
+import okhttp3.Authenticator;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.Route;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static String TAG = MainActivity.class.getName();
-    private String reposURL = "https://api.github.com/repositories";
-    private String searchURL = "https://api.github.com/users/%s/repos";
+    public static String TAG = MainActivity.class.getName();
+    public String reposURL = "https://api.github.com/repositories";
+    public String searchURL = "https://api.github.com/users/%s/repos";
+    private static final int REQUEST_LOGIN = 1;
     private List<GithubRepo> listRepos;
     private GithubRepo selectedRepo;
     private ListView listviewRepos;
     private Utility utility;
     private SearchView searchView;
     private RepoAdapter repoAdapter;
+    private String username;
+    private String password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (listRepos == null) {
             utility.showLoading(this, getString(R.string.loading_repos));
-            retrieveRepos(reposURL);
+
+            callAPI(reposURL);
         }
     }
 
@@ -80,11 +91,13 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     utility.showLoading(MainActivity.this, getString(R.string.loading_repos));
+                    String urlCall = reposURL;
                     if (query.length() > 0) {
-                        retrieveRepos(String.format(searchURL, query));
-                    } else {
-                        retrieveRepos(reposURL);
+                        reposURL = String.format(searchURL, query);
                     }
+
+                    callAPI(urlCall);
+
                     searchPlate.setText("");
                     searchView.setIconified(true);
                     return true;
@@ -100,17 +113,73 @@ public class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    private void retrieveRepos(String url) {
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_login) {
+            Intent intentDetails = new Intent();
+            intentDetails.setClass(MainActivity.this, LoginActivity.class);
+            intentDetails.putExtra("username", username);
+            intentDetails.putExtra("password", password);
+//            intentDetails.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivityForResult(intentDetails, REQUEST_LOGIN);
+        }
+        return true;
+    }
 
-        listRepos = new ArrayList<>();
-        OkHttpClient httpClient = new OkHttpClient();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == REQUEST_LOGIN) {
+            if (resultCode == Activity.RESULT_OK) {
+                username = data.getStringExtra("username");
+                password = data.getStringExtra("password");
+
+                Log.d(TAG, "onActivityResult: " + username + " - " + password);
+            }
+        }
+    }
+
+    private Authenticator getAuth() {
+        if (username != null && password != null) {
+            if (username.length() > 0 && password.length() > 0) {
+                return new Authenticator() {
+                    @Override
+                    public Request authenticate(Route route, Response response) throws IOException {
+                        String credential = Credentials.basic(username, password);
+                        return response.request().newBuilder().header("Authorization", credential).build();
+                    }
+                };
+            }
+        }
+
+        return null;
+    }
+
+    public void callAPI(String strURL) {
+        retrieveRepos(strURL, new ReposListener() {
+            @Override
+            public void reposDownloaded(List<GithubRepo> repos) {
+                setRepoAdapter(repos);
+            }
+
+            @Override
+            public void reposFailed(String error) {
+                stopLoadingShowError(error);
+            }
+        });
+    }
+
+    public void retrieveRepos(String url, final ReposListener listener) {
+
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        if (getAuth() != null) httpClient.authenticator(getAuth());
         Request request = new Request.Builder()
                 .url(url)
                 .build();
-        httpClient.newCall(request).enqueue(new Callback() {
+        httpClient.build().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                stopLoadingShowError();
+                listener.reposFailed(e.getLocalizedMessage());
             }
 
             @Override
@@ -120,80 +189,22 @@ public class MainActivity extends AppCompatActivity {
                     JsonArray jsonRepos = new Gson().fromJson(response.body().string(), JsonArray.class);
                     listRepos = new Gson().fromJson(jsonRepos, new TypeToken<List<GithubRepo>>() {}.getType());
 
-                    if (repoAdapter == null) {
-                        repoAdapter = new RepoAdapter(MainActivity.this, listRepos, new RepoListener() {
-                            @Override
-                            public void itemClicked(int position, GithubRepo repo) {
-
-                                utility.showLoading(MainActivity.this, getString(R.string.loading_repos));
-
-                                retrieveRepoDetails(repo, new RepoDetailsListener() {
-                                    @Override
-                                    public void detailsDownloaded(GithubRepo repo) {
-                                        selectedRepo = repo;
-                                        String getCommitsUrl = selectedRepo.commitsUrl.replaceAll("\\{.*?\\}", "");
-                                        retrieveCountDetails(selectedRepo, getCommitsUrl, new RepoDetailsListener() {
-                                            @Override
-                                            public void detailsDownloaded(GithubRepo repo) {
-                                                String getBranchesUrl = selectedRepo.branchesUrl.replaceAll("\\{.*?\\}", "");
-                                                retrieveCountDetails(selectedRepo, getBranchesUrl, new RepoDetailsListener() {
-                                                    @Override
-                                                    public void detailsDownloaded(GithubRepo repo) {
-                                                        utility.dismissLoading(MainActivity.this);
-                                                        Intent intentDetails = new Intent();
-                                                        intentDetails.setClass(MainActivity.this, DetailsActivity.class);
-                                                        intentDetails.putExtra("GithubRepo", new Gson().toJson(selectedRepo));
-                                                        intentDetails.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                                        startActivity(intentDetails);
-                                                    }
-
-                                                    @Override
-                                                    public void detailsFailed(String error) {
-                                                        stopLoadingShowError();
-                                                    }
-                                                });
-                                            }
-
-                                            @Override
-                                            public void detailsFailed(String error) {
-                                                stopLoadingShowError();
-                                            }
-                                        });
-                                    }
-
-                                    @Override
-                                    public void detailsFailed(String error) {
-
-                                    }
-                                });
-                            }
-                        });
-                    }
-                    
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (listviewRepos.getAdapter() == null) {
-                                listviewRepos.setAdapter(repoAdapter);
-                            } else {
-                                repoAdapter.refresh(listRepos);
-                            }
-                        }
-                    });
+                    listener.reposDownloaded(listRepos);
 
                 } else {
-                    stopLoadingShowError();
+                    listener.reposFailed(null);
                 }
             }
         });
     }
 
     private void retrieveRepoDetails(final GithubRepo githubRepo, final RepoDetailsListener listener) {
-        OkHttpClient httpClient = new OkHttpClient();
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        if (getAuth() != null) httpClient.authenticator(getAuth());
         Request request = new Request.Builder()
                 .url(githubRepo.url)
                 .build();
-        httpClient.newCall(request).enqueue(new Callback() {
+        httpClient.build().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 listener.detailsFailed(e.getLocalizedMessage());
@@ -213,11 +224,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void retrieveCountDetails(final GithubRepo repo, final String apiUrl, final RepoDetailsListener listener) {
-        OkHttpClient httpClient = new OkHttpClient();
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        if (getAuth() != null) httpClient.authenticator(getAuth());
         Request request = new Request.Builder()
                 .url(apiUrl)
                 .build();
-        httpClient.newCall(request).enqueue(new Callback() {
+        httpClient.build().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 listener.detailsFailed(e.getLocalizedMessage());
@@ -226,15 +238,25 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    JsonArray jsonCount = new Gson().fromJson(response.body().string(), JsonArray.class);
-                    if (jsonCount != null) {
-                        if (apiUrl.contains("commits")) {
-                            repo.commits = jsonCount.size();
-                        } else if (apiUrl.contains("branches")) {
-                            repo.branches = jsonCount.size();
-                        }
+                    JsonArray jsonBranches = new Gson().fromJson(response.body().string(), JsonArray.class);
+                    List<Branch> branches = new Gson().fromJson(jsonBranches, new TypeToken<List<Branch>>() {}.getType());
+                    repo.branches = branches.size();
+
+                    if (repo.branches > 0) {
+                        retrieveCommitCounts(branches, new RepoCountListener() {
+                            @Override
+                            public void repoCounted(int totalCount) {
+                                repo.commits = totalCount;
+
+                                listener.detailsDownloaded(repo);
+                            }
+
+                            @Override
+                            public void repoFailed(String error) {
+                                listener.detailsFailed(error);
+                            }
+                        });
                     }
-                    listener.detailsDownloaded(repo);
 
                 } else {
                     listener.detailsFailed(response.body().string());
@@ -243,8 +265,122 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void retrieveCommitCounts(List<Branch> branches, RepoCountListener listener) {
+
+        int totalCount = 0;
+
+        for (Branch branch : branches) {
+            String startSHA = branch.commit.sha;
+            String lastSHA = "";
+            boolean nextCommits = true;
+            String commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=100&sha=" + startSHA);
+
+            do {
+                List<Commit> commits = null;
+                try {
+                    commits = getSHACommits(commitsUrl);
+                } catch (Exception e) {
+                    listener.repoFailed(e.getLocalizedMessage());
+                    return;
+                }
+
+                if (commits != null && commits.size() > 0) {
+                    totalCount = totalCount + commits.size();
+                    Log.d(TAG, "retrieveCommitCounts: " + totalCount);
+                    lastSHA = commits.get(commits.size() - 1).sha;
+
+                    if (lastSHA.equals(startSHA)) {
+                        // If last commit SHA is equal of the start one,
+                        // I reached the first commit and I got all commits count
+                        nextCommits = false;
+                    } else {
+                        // Loading following commits
+                        commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=100&sha=" + lastSHA);
+                    }
+                } else {
+                    nextCommits = false;
+                }
+
+            } while (nextCommits);
+        }
+    }
+
+    private List<Commit> getSHACommits(String url) throws Exception {
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        if (getAuth() != null) httpClient.authenticator(getAuth());
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+        Response response = httpClient.build().newCall(request).execute();
+
+        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+        JsonArray jsonCommits = new Gson().fromJson(response.body().string(), JsonArray.class);
+        List<Commit> commits = new Gson().fromJson(jsonCommits, new TypeToken<List<Commit>>() {}.getType());
+
+        return commits;
+    }
+
+    private void setRepoAdapter(final List<GithubRepo> list) {
+
+        if (repoAdapter == null) {
+            repoAdapter = new RepoAdapter(MainActivity.this, list, new RepoClickListener() {
+                @Override
+                public void itemClicked(int position, GithubRepo repo) {
+
+                    utility.showLoading(MainActivity.this, getString(R.string.loading_repos));
+
+                    retrieveRepoDetails(repo, new RepoDetailsListener() {
+                        @Override
+                        public void detailsDownloaded(GithubRepo repo) {
+                            selectedRepo = repo;
+                            String getBranchesUrl = selectedRepo.branchesUrl.replaceAll("\\{.*?\\}", "");
+                            retrieveCountDetails(selectedRepo, getBranchesUrl, new RepoDetailsListener() {
+                                @Override
+                                public void detailsDownloaded(GithubRepo repo) {
+                                    utility.dismissLoading(MainActivity.this);
+                                    Intent intentDetails = new Intent();
+                                    intentDetails.setClass(MainActivity.this, DetailsActivity.class);
+                                    intentDetails.putExtra("GithubRepo", new Gson().toJson(selectedRepo));
+                                    intentDetails.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(intentDetails);
+                                }
+
+                                @Override
+                                public void detailsFailed(String error) {
+                                    stopLoadingShowError(error);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void detailsFailed(String error) {
+                            stopLoadingShowError(error);
+                        }
+                    });
+                }
+            });
+        }
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (listviewRepos.getAdapter() == null) {
+                    listviewRepos.setAdapter(repoAdapter);
+                } else {
+                    repoAdapter.refresh(list);
+                }
+            }
+        });
+    }
+
     private void stopLoadingShowError() {
+        stopLoadingShowError(getString(R.string.error_get_feed_msg));
+    }
+
+    private void stopLoadingShowError(String message) {
+        if (message == null) message = getString(R.string.error_get_feed_msg); // Generic error if message is null
         utility.dismissLoading(MainActivity.this);
-        utility.showAlert(MainActivity.this, getString(R.string.error_get_feed_title), getString(R.string.error_get_feed_msg));
+        utility.showAlert(MainActivity.this, getString(R.string.error_get_feed_title), message);
     }
 }

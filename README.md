@@ -92,8 +92,7 @@ https://github.com/bumptech/glide
 ---
 ## :clock2: Future developments ##
 
-* Add login screen - login with GitHub account
-* Include Unit Tests to achieve a minimum of 70% Condition Coverage and 70% Line Coverage
+* Improve login, checking authentication after Sign in process
 
 ---
 ## :pencil: Credits ##

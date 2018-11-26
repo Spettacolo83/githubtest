@@ -12,7 +12,7 @@ import it.stefanorussello.githubtest.R;
 
 public class Utility {
 
-    private static String TAG = Utility.class.getName();
+    public static String TAG = Utility.class.getName();
     private ProgressDialog progressDialog;
 
     public void showLoading(final Context context, final String message) {
@@ -33,11 +33,11 @@ public class Utility {
         });
     }
 
-    public void dismissLoading(Context context) {
+    public void dismissLoading(final Context context) {
         ((Activity)context).runOnUiThread(new Runnable() {
             public void run() {
                 if (progressDialog != null) {
-                    if (progressDialog.isShowing()) {
+                    if (progressDialog.isShowing() && !((Activity) context).isFinishing()) {
                         progressDialog.dismiss();
                     }
                 }
@@ -59,7 +59,9 @@ public class Utility {
                                 dialog.dismiss();
                             }
                         });
-                alertDialog.show();
+                if (!((Activity) context).isFinishing()) {
+                    alertDialog.show();
+                }
             }
         });
     }
