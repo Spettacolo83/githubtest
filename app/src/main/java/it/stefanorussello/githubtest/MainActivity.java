@@ -2,10 +2,10 @@ package it.stefanorussello.githubtest;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.fabric.sdk.android.Fabric;
@@ -29,15 +30,13 @@ import it.stefanorussello.githubtest.listeners.ReposListener;
 import it.stefanorussello.githubtest.models.Branch;
 import it.stefanorussello.githubtest.models.Commit;
 import it.stefanorussello.githubtest.models.GithubRepo;
+import it.stefanorussello.githubtest.utils.BasicAuthInterceptor;
 import it.stefanorussello.githubtest.utils.Utility;
-import okhttp3.Authenticator;
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.Route;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -64,6 +63,12 @@ public class MainActivity extends AppCompatActivity {
         utility = new Utility();
 
         listviewRepos = findViewById(R.id.listviewRepos);
+
+        SharedPreferences prefs = getSharedPreferences("Login", MODE_PRIVATE);
+        if (prefs.contains("username") && prefs.contains("password")) {
+            username = prefs.getString("username", "");
+            password = prefs.getString("password", "");
+        }
     }
 
     @Override
@@ -96,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
                         reposURL = String.format(searchURL, query);
                     }
 
-                    callAPI(urlCall);
+                    callAPI(reposURL);
 
                     searchPlate.setText("");
                     searchView.setIconified(true);
@@ -134,32 +139,20 @@ public class MainActivity extends AppCompatActivity {
                 username = data.getStringExtra("username");
                 password = data.getStringExtra("password");
 
-                Log.d(TAG, "onActivityResult: " + username + " - " + password);
+                SharedPreferences.Editor editor = getSharedPreferences("Login", MODE_PRIVATE).edit();
+                editor.putString("username", username);
+                editor.putString("password", password);
+                editor.apply();
             }
         }
-    }
-
-    private Authenticator getAuth() {
-        if (username != null && password != null) {
-            if (username.length() > 0 && password.length() > 0) {
-                return new Authenticator() {
-                    @Override
-                    public Request authenticate(Route route, Response response) throws IOException {
-                        String credential = Credentials.basic(username, password);
-                        return response.request().newBuilder().header("Authorization", credential).build();
-                    }
-                };
-            }
-        }
-
-        return null;
     }
 
     public void callAPI(String strURL) {
         retrieveRepos(strURL, new ReposListener() {
             @Override
             public void reposDownloaded(List<GithubRepo> repos) {
-                setRepoAdapter(repos);
+                listRepos = repos;
+                setRepoAdapter(listRepos);
             }
 
             @Override
@@ -172,7 +165,9 @@ public class MainActivity extends AppCompatActivity {
     public void retrieveRepos(String url, final ReposListener listener) {
 
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        if (getAuth() != null) httpClient.authenticator(getAuth());
+        if (username != null && password != null && username.length() > 0 && password.length() > 0) {
+            httpClient.addInterceptor(new BasicAuthInterceptor(username, password));
+        }
         Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -187,9 +182,10 @@ public class MainActivity extends AppCompatActivity {
                 utility.dismissLoading(MainActivity.this);
                 if (response.isSuccessful()) {
                     JsonArray jsonRepos = new Gson().fromJson(response.body().string(), JsonArray.class);
-                    listRepos = new Gson().fromJson(jsonRepos, new TypeToken<List<GithubRepo>>() {}.getType());
+                    ArrayList<GithubRepo> list = new ArrayList<>();
+                    list = new Gson().fromJson(jsonRepos, new TypeToken<List<GithubRepo>>() {}.getType());
 
-                    listener.reposDownloaded(listRepos);
+                    listener.reposDownloaded(list);
 
                 } else {
                     listener.reposFailed(null);
@@ -200,7 +196,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void retrieveRepoDetails(final GithubRepo githubRepo, final RepoDetailsListener listener) {
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        if (getAuth() != null) httpClient.authenticator(getAuth());
+        if (username != null && password != null && username.length() > 0 && password.length() > 0) {
+            httpClient.addInterceptor(new BasicAuthInterceptor(username, password));
+        }
         Request request = new Request.Builder()
                 .url(githubRepo.url)
                 .build();
@@ -225,7 +223,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void retrieveCountDetails(final GithubRepo repo, final String apiUrl, final RepoDetailsListener listener) {
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        if (getAuth() != null) httpClient.authenticator(getAuth());
+        if (username != null && password != null && username.length() > 0 && password.length() > 0) {
+            httpClient.addInterceptor(new BasicAuthInterceptor(username, password));
+        }
         Request request = new Request.Builder()
                 .url(apiUrl)
                 .build();
@@ -265,18 +265,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void retrieveCommitCounts(List<Branch> branches, RepoCountListener listener) {
+    public void retrieveCommitCounts(List<Branch> branches, RepoCountListener listener) {
 
         int totalCount = 0;
+        int perPage = 100;
 
         for (Branch branch : branches) {
-            String startSHA = branch.commit.sha;
-            String lastSHA = "";
+            String branchSHA = branch.commit.sha;
+            int page = 1;
             boolean nextCommits = true;
-            String commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=100&sha=" + startSHA);
+            String commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=" + perPage + "&page=" + page + "&sha=" + branchSHA);
 
             do {
-                List<Commit> commits = null;
+                List<Commit> commits;
                 try {
                     commits = getSHACommits(commitsUrl);
                 } catch (Exception e) {
@@ -286,16 +287,13 @@ public class MainActivity extends AppCompatActivity {
 
                 if (commits != null && commits.size() > 0) {
                     totalCount = totalCount + commits.size();
-                    Log.d(TAG, "retrieveCommitCounts: " + totalCount);
-                    lastSHA = commits.get(commits.size() - 1).sha;
 
-                    if (lastSHA.equals(startSHA)) {
-                        // If last commit SHA is equal of the start one,
-                        // I reached the first commit and I got all commits count
-                        nextCommits = false;
-                    } else {
-                        // Loading following commits
-                        commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=100&sha=" + lastSHA);
+                    // If commits count < pagination size, next page does not exist
+                    nextCommits = commits.size() >= perPage;
+
+                    if (nextCommits) {
+                        page++;
+                        commitsUrl = branch.commit.url.replace("/" + branch.commit.sha, "?per_page=" + perPage + "&page=" + page + "&sha=" + branchSHA);
                     }
                 } else {
                     nextCommits = false;
@@ -303,11 +301,15 @@ public class MainActivity extends AppCompatActivity {
 
             } while (nextCommits);
         }
+
+        listener.repoCounted(totalCount);
     }
 
-    private List<Commit> getSHACommits(String url) throws Exception {
+    public List<Commit> getSHACommits(String url) throws Exception {
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        if (getAuth() != null) httpClient.authenticator(getAuth());
+        if (username != null && password != null && username.length() > 0 && password.length() > 0) {
+            httpClient.addInterceptor(new BasicAuthInterceptor(username, password));
+        }
         Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -372,10 +374,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    private void stopLoadingShowError() {
-        stopLoadingShowError(getString(R.string.error_get_feed_msg));
     }
 
     private void stopLoadingShowError(String message) {
